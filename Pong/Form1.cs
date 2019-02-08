@@ -1,7 +1,7 @@
 ﻿/*
  * Description:     A basic PONG simulator
- * Author:           
- * Date:            
+ * Author:   Brendon Roy
+ * Date:	February 8th, 2019
  */
 
 #region libraries
@@ -25,6 +25,9 @@ namespace Pong
 	{
 		#region global values
 
+		//random
+		Random randGen = new Random();
+
 		//graphics objects for drawing
 		SolidBrush drawBrush = new SolidBrush(Color.White);
 		Font drawFont = new Font("Courier New", 10);
@@ -32,6 +35,8 @@ namespace Pong
 		// Sounds for game
 		SoundPlayer scoreSound = new SoundPlayer(Properties.Resources.score);
 		SoundPlayer collisionSound = new SoundPlayer(Properties.Resources.collision);
+		SoundPlayer powerSound = new SoundPlayer(Properties.Resources.power_shot);
+		SoundPlayer chargeSound = new SoundPlayer(Properties.Resources.fullcharge);
 
 		//determines whether a key is being pressed or not
 		Boolean aKeyDown, zKeyDown, jKeyDown, mKeyDown, kKeyDown, sKeyDown;
@@ -140,9 +145,10 @@ namespace Pong
 				player1Score = player2Score = 0;
 				newGameOk = false;
 				startLabel.Visible = false;
-				scoreLabel.Visible = true;
+				//				scoreLabel.Visible = true;
 				gameUpdateLoop.Start();
-				scoreLabel.Text = player1Score + "                    " + player2Score;
+				p1Bar.Visible = true;
+				p2Bar.Visible = true;
 				p1Charge = 0;
 				p2Charge = 0;
 				p1Bar.Value = p1Charge;
@@ -293,9 +299,11 @@ namespace Pong
 				catch
 				{
 					p1Charge = 100;
+					chargeSound.PlayLooping();
 				}
 				ballMoveRight = true;
 				collisionSound.Play();
+
 				if (p2Power == true)
 				{
 					kKeyDown = false;
@@ -319,16 +327,24 @@ namespace Pong
 				catch
 				{
 					p2Charge = 100;
+					chargeSound.PlayLooping();
 				}
 				ballMoveRight = false;
 				collisionSound.Play();
+
 				if (p1Power == true)
 				{
+					powerSound.Play();
 					sKeyDown = false;
 					p1Power = false;
 					p1Charge = 0;
 					p1Bar.Value = p1Charge;
 				}
+			}
+
+			if (p1Power == true && p1.IntersectsWith(ball) || p2Power == true && p2.IntersectsWith(ball))
+			{
+				powerSound.PlayLooping();
 			}
 
 			/*  ENRICHMENT
@@ -347,7 +363,6 @@ namespace Pong
 				scoreSound.Play();
 				// --- update player 2 score
 				player2Score += 1;
-				scoreLabel.Text = player1Score + "                    " + player2Score;
 				if (player2Score == gameWinScore)
 				{
 					// TODO use if statement to check to see if player 2 has won the game. If true run 
@@ -364,7 +379,7 @@ namespace Pong
 						p2Bar.Value = 0;
 						kKeyDown = false;
 					}
-						SetParameters();
+					SetParameters();
 				}
 			}
 
@@ -374,7 +389,6 @@ namespace Pong
 			{
 				scoreSound.Play();
 				player1Score += 1;
-				scoreLabel.Text = player1Score + "                    " + player2Score;
 				if (player1Score == gameWinScore)
 				{
 					GameOver("Player 1");
@@ -411,6 +425,10 @@ namespace Pong
 			// TODO create game over logic
 			// --- stop the gameUpdateLoop
 			gameUpdateLoop.Stop();
+			p1Bar.Visible = false;
+			p2Bar.Visible = false;
+			p1Power = false;
+			p2Power = false;
 			// --- show a message on the startLabel to indicate a winner, (need to Refresh).
 			startLabel.Visible = true;
 			startLabel.Text = winner + " is the Winner!";
@@ -418,23 +436,38 @@ namespace Pong
 			// --- pause for two seconds 
 			Thread.Sleep(2000);
 			// --- use the startLabel to ask the user if they want to play again
-			scoreLabel.Visible = false;
-			startLabel.Text = "Play Again?" + "\n[Press Space]";
+			startLabel.Text = "Play Again?" + "\n[Press Space or Y Key]"
+				+ "\n[Press N to Quit]";
 
 		}
 
 		private void Form1_Paint(object sender, PaintEventArgs e)
 		{
+			#region field graphics
+
+			Pen drawPen = new Pen(Color.LightGray, 5);
+			e.Graphics.DrawRectangle(drawPen, (this.Width / 8 * 3), (18), (this.Width / 8) * 2, (this.Height) - 36);
+			e.Graphics.DrawRectangle(drawPen, (18), (18), ((this.Width) - 38), (this.Height) - 36);
+			e.Graphics.DrawLine(drawPen, (this.Width / 2), 18, (this.Width / 2), this.Height - 18);
+
+			e.Graphics.DrawLine(drawPen, 18, (this.Height / 2), (this.Width / 8 * 3), (this.Height / 2));
+			e.Graphics.DrawLine(drawPen, (this.Width) - 18, (this.Height / 2), (this.Width / 8 * 5), (this.Height / 2));
+
+			#endregion
+
 			// TODO draw paddles using FillRectangle
 			e.Graphics.FillRectangle(drawBrush, p1);
 			e.Graphics.FillRectangle(drawBrush, p2);
 
 			// TODO draw ball using FillRectangle
-			e.Graphics.FillEllipse(drawBrush, ball);
-
+			{
+			SolidBrush ballBrush = new SolidBrush(Color.FromArgb(255, 182, 255, 0));
+			e.Graphics.FillEllipse(ballBrush, ball);
+			}
 			// TODO draw scores to the screen using DrawString
 
-
+			e.Graphics.DrawString(player1Score + "", drawFont, drawBrush, (this.Width / 4), 34);
+			e.Graphics.DrawString(player2Score + "", drawFont, drawBrush, (this.Width / 4) * 3, 34);
 		}
 
 	}
